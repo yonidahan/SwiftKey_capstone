@@ -1,0 +1,323 @@
+---
+title: "Milestone Report - SwiftKey Project"
+author: "Yoni DAHAN"
+date: "Monday, July 20, 2015"
+output: html_document
+theme: spacelab
+---
+
+#SwiftKey Project - Milestone Report   
+
+----- 
+
+##Description   
+This report aims to provide some insight about the data and develops on the model building strategy that will be applied further on.   
+The data is from the **HC Corpora** and is downloadable [here](www.corpora.heliohost.org). It is provided in a plenty of languages, but the english files will be mostly used at this stage.   
+
+For each language, it consists of three text files from **blogs**, **news** and **twitter** feed, which brings a representative specimen of the everyday written language.   
+The R-code needed to perform the following analysis is available in my [GitHub repository]().   
+
+----
+
+###Clarification
+- The notation **n-gram** stands for *n-successive words*. For instance, considering the precedent phrase, its 2-grams are *"The notation"*, *"notation n-gram"*, *"n-gram stands"*, *"stands for"*, *"for n-successive"*, *"n-successive words"*.   
+- Deliberately, the **stopwords** - the most common words, such as "the", "an", "we", "which"... - will not be removed in order to preserve the grammatical sentence structure.   
+- Likewise, the **profanities** will be kept. However, the model built will not predict them.   
+- For this analysis, the three files are gathered in a unique corpora   
+
+
+----
+
+##Basic Summary   
+
+
+Here is a basic summary of the three files. For each file, "MeanLine" and "MaxLine" indicate respectively the mean and max number of characters per line :   
+```{r echo=FALSE,eval=TRUE,warning=FALSE,message=FALSE,results='hide'}
+#Libraries
+lapply(c("tm","ggplot2"),require,character.only=TRUE)
+Sys.setenv(JAVA_HOME="C:\\Program Files\\Java\\jre6")
+library("RWeka")
+
+
+blogs<-readLines("C:/Users/Sarah/Desktop/Data Science/Data Science Specialization/Capstone Project/final/en_US/en_US.blogs.txt",encoding="utf-8")
+news<-readLines("C:/Users/Sarah/Desktop/Data Science/Data Science Specialization/Capstone Project/final/en_US/en_US.news.txt")
+twitter<-readLines("C:/Users/Sarah/Desktop/Data Science/Data Science Specialization/Capstone Project/final/en_US/en_US.twitter.txt")
+```
+
+```{r echo=FALSE,message=FALSE,eval=TRUE,warning=FALSE,comment=" "}
+#Mean number of characters
+meanchar<-function(x){
+        x<-sapply(x,nchar)
+        x<-mean(x)
+        return(x)
+}   
+
+files<-list(blogs,news,twitter)
+
+data.frame(
+        "File"=c("blogs","news","twitter"),
+        "Memory"=sapply(files,FUN=function(x)format(object.size(x),units="MB")),
+        "LineCount"=sapply(files,FUN=function(x)length(x)),
+        "WordCount"=c(37334131,34372530,30373583),
+        "MeanLine"=sapply(files,FUN=function(x)mean(sapply(x,nchar))),
+        "MaxLine"=sapply(files,FUN=function(x)max(sapply(x,nchar)))
+)
+```   
+The character limit of a tweet is illustrated by the low max number of characters per line of the tweeter corpus.   
+
+-------
+
+##Pre-processing   
+
+-----
+
+###Sampling   
+Due to memory constraints, only a random sample of 5% of the entire corpora will be used.   
+The subsequent analysis will show that it can cover most of the word occurences in the language.   
+
+----
+
+###Cleaning   
+Prior to studying the features and highlighting some of its characteristics, the corpora should be cleaned as to appear in a normalized form. This will be performed in following these steps :   
+   
+   
+1. Convert **upper characters** to lower ones   
+2. Handling **english contractions**. In other words, fixing the issue of "I'm", "I am","they're", "they are"... which can be counted erroneously as different n-grams   
+3. Remove **URL's, e-mail adresses and twitter public replies**   
+4. Remove **hashtags**   
+5. Remove **numbers**   
+6. Remove **punctuation**   
+7. Remove words with more than **two successive same letters**, like "grrrrr" or "aaaaah" which aren't correct english words   
+8. Remove **extra whitespaces**   
+
+
+```{r echo=FALSE,eval=TRUE,message=FALSE}
+#Clean function, files: a list
+clean<-function(files,sample=0.05){ #random sample of the data
+        
+        data<-unlist(sapply(files,function(x){
+                
+                set.seed(1234)#for reproduciblity
+                
+                pz<-sample.int(n=length(x),size=sample*length(x))
+                
+                x<-x[pz]
+                
+                return(x)
+        }
+        ))
+        
+        #Fix encoding issues
+        data<-iconv(data,"latin1","ASCII",sub="")
+        
+        #Upper to lower cases
+        data<-tolower(data)
+        
+        
+        #Handling english contractions, expanding them
+        
+        data<-gsub("i[[:space:]]*([[:alnum:]]*)ain't","I am not",data)#I ain't going there
+        data<-gsub("can't","cannot",data) #can't-->cannot
+        data<-gsub("([[:alnum:]]*)\\1n't","\\1 not",data) #(is, are)n't-->(is,are) not
+        data<-gsub("([[:alnum:]]*)\\1've","\\1 have",data) #(I, they...)'ve--> (I, they...) have
+        
+        data<-gsub("([[:alnum:]]*)\\1'd","\\1 would",data) #(I, they)'d--> (I, they...) 
+        #Approx. : "would"is more used than "had"
+        
+        data<-gsub("([[:alnum:]]*)\\1'll","\\1 will",data)#(I, they...)'ll-->(I, they...)will 
+        #Ditto : "will" and "shall"
+        
+        data<-gsub("i'm","i am",data)#I'm-->I am
+        
+        data<-gsub("let's","let us",data)#let's-->let us
+        data<-gsub("([[:alnum:]]*)\\1's","\\1 is",data)#(He, that...)'s-->(He, that...)is 
+        data<-gsub("([[:alnum:]]*)\\1're","\\1 are",data) #'re---> are 
+        
+        #Remove URL's
+        data<-gsub("(https?)?(://)?(www.)?[[:alnum:]]*(.com|.org|.fr)","",data)
+        
+        #Remove email adresses and public replies
+        data<-gsub("([[:graph:]]*)?@([[:alnum:]]*)?(.com|.org|.fr)?","",data)
+        
+        #Remove hashtags
+        data<-gsub("#[[:alnum:]]*","",data)
+        
+        #Remove Numbers
+        data<-gsub("[[:digit:]]","",data)
+        
+        #Remove Punctuation
+        #Preserve intra-word dashes and apostrophes
+        data<-gsub("(\\w['-]\\w)|[[:punct:]]", "\\1", data)
+        
+        #Remove words with more than 2 same letters
+        data<-gsub("([[:alnum:]])\\1{2,}","\\1",data)
+        
+        #remove extra-whitespaces
+        data<-gsub("\\s+"," ",data)
+        
+        return(data)        
+}  
+
+data<-clean(files=list(blogs,news,twitter),sample=0.02)   
+```   
+
+----- 
+
+##Features of the Data   
+
+-----
+  
+```{r echo=FALSE, message=FALSE,eval=TRUE,comment=" "}
+
+
+corpus<-VCorpus(VectorSource(data))   
+
+#Document-term matrices
+dtm<-function(corpus,n=1){
+        
+        if(n==1){
+        control<-list(NULL)
+        x<-DocumentTermMatrix(corpus,control=control)
+        return(x)
+        
+        }else{
+        control<-list(tokenize=function(x)NGramTokenizer(x,Weka_control(min=n,max=n)))
+        x<-DocumentTermMatrix(corpus,control=control)
+        
+        return(x)
+        }
+}   
+
+dtm_1<-dtm(corpus,n=1)#1-grams
+dtm_2<-dtm(corpus,n=2)#2-grams
+dtm_3<-dtm(corpus,n=3)#3-grams   
+
+paste0("There are ",dim(dtm_1)[2]," unique 1-grams (words) in the sampled corpora");
+paste0("There are ",dim(dtm_2)[2]," unique 2-grams in the sampled corpora");
+paste0("There are ",dim(dtm_3)[2]," unique 3-grams in the sampled corpora")
+```   
+However, most of them are used very rarely :   
+```{r echo=FALSE,message=FALSE,eval=TRUE,comment=" "}
+
+discard<-function(x,digits=4){
+        x1<-x
+        x<-removeSparseTerms(x,sparse=0.99) 
+        percent<-(dim(x1)[2]-dim(x)[2])/dim(x1)[2]
+        percent<-paste0(100*signif(percent,digits=digits),"%")
+        return(percent)
+}
+
+paste0("1-grams that are present in only 1% of the documents represent ",discard(dtm_1,digits=4)," of the total number of 1-grams");
+paste0("2-grams that are present in only 1% of the documents represent ",discard(dtm_2,digits=4)," of the total number of 2-grams");   
+paste0("2-grams that are present in only 1% of the documents represent ",discard(dtm_3,digits=4)," of the total number of 2-grams")
+```   
+
+The following plot illustrates this fact :   
+```{r echo=FALSE,message=FALSE,eval=TRUE,comment=" "}
+termfreq<-function(data,n,rm=F){
+        x<-PlainTextDocument(data)
+        if(rm==T){x<-removeWords(x,stopwords("SMART"))}
+        control<-list(tokenize=function(x)NGramTokenizer(x,Weka_control(min=n,max=n)))
+        x<-sort(termFreq(x,control=control),decreasing=T)
+
+}
+termfreq1<-termfreq(data,1);termfreq11<-termfreq(data,1,rm=T);
+termfreq2<-termfreq(data,2);termfreq3<-termfreq(data,3)
+
+coverage<-function(termfreq){
+        x<-(cumsum(termfreq)*100)/(sum(termfreq))
+        x<-data.frame(word=attr(x,"names"),rank=1:length(x),coverage=x)
+        return(x)     
+}
+
+cov<-coverage(termfreq1)
+
+
+
+```   
+
+
+```{r echo=FALSE,eval=TRUE,message=FALSE,warning=FALSE,comment=" ",fig.width=10,fig.align='center'}
+plot1<-ggplot(data=cov, aes(rank,coverage))+geom_line(size=1,colour="blue")+ 
+   scale_x_continuous("1-gram rank",breaks=c(1,235,8672),limits=c(1,10000))+
+   scale_y_continuous("Coverage (in %)",breaks=c(round(cov$coverage[1],digits=1),50,90),limits=c(cov$coverage[1],100))+
+   geom_point(data = data.frame(x=c(235,8672),y=c(50,90)),  # Add points at intersections
+                   aes(x = x, y = y), size = 3)+
+theme_classic()+         
+geom_segment(data = data.frame(x=c(235,8672),y=c(50.0,90.0)),  # Add dotted lines
+             aes(x = x, y = 0, xend = x, yend = y),
+             lty = 2)+
+geom_segment(data = data.frame(x=c(235,8672),y=c(50.0,90.0)),  # Add dotted lines
+                     aes(x = 0, y = y, xend = x, yend = y),
+                     lty = 2)
+
+plot1   
+
+paste0("The first ", which(cov$coverage>=50)[1]," most frequent words cover 50% of all word instances in the sampled corpus");
+paste0("The first ", which(cov$coverage>=90)[1]," most frequent words cover 90% of all word instances in the sampled corpus")
+```   
+
+
+This pattern can be linked with the [Zipf's Law](https://en.wikipedia.org/wiki/Zipf%27s_law) which states that the number #1 word is used twice as the second, and so on.   
+
+That is, exploiting this phenomenon will lead to **data compression and better efficiency**, while preserving the accuracy.
+
+------------
+
+We can now have a look at the distributions of the first forty 1-, 2 and 3-grams:   
+```{r echo=FALSE,message=TRUE,warning=FALSE,eval=TRUE,fig.width=10,fig.align='center'}
+
+barplot<-function(termfreq,first,xlab="1-gram"){
+        x<-data.frame(Word=attr(termfreq,"dimnames")$txt,Frequency=termfreq)[1:first,]
+        x$Word<-factor(x$Word,levels=x$Word)
+        qplot(data=x,Word,Frequency,geom="bar",stat="identity",fill=I("blue"),
+              xlab=xlab)+coord_flip()
+
+}
+
+plot1<-barplot(termfreq1,first=40,xlab="1-gram");plot11<-barplot(termfreq11,first=40,xlab="1-gram")
+plot2<-barplot(termfreq2,first=40,xlab="2-gram");plot3<-barplot(termfreq3,first=40,xlab="3-gram")
+
+plot1;plot2;plot3
+```   
+
+It is no surprise that most of the 1-, 2- and 3-grams are stopwords.   
+When removing them, we can obtain this graph for the top forty 1-grams:
+```{r echo=FALSE,fig.align='center',fig.width=10}
+plot11
+```   
+
+------------
+
+##Model Building Strategy  
+
+-----   
+
+Further on, I will focus on these points :   
+
+- perform **sentence segmentation** as to generate higher level n-grams   
+
+- improve the **sampling process**: sampling enough to **increase representativeness** 
+
+- **estimate unobserved n-grams** with [backoff models](https://en.wikipedia.org/wiki/Katz%27s_back-off_model)   
+
+- use the knowledge of word frequencies to **reduce the size of the model**   
+
+- employ Markov chains for modelling   
+
+- create a Shiny app that predicts the next word based on a 3-gram input
+
+-----
+
+##References   
+
+-----
+
+- [Lecture Slides from the Stanford Coursera course by Dan Jurafsky and Christopher Manning](https://web.stanford.edu/~jurafsky/NLPCourseraSlides.html)      
+- [Markov Chain - Wikipedia](https://en.wikipedia.org/wiki/Markov_chain)   
+- [HC Corpora - About the Corpora](http://www.corpora.heliohost.org/aboutcorpus.html )   
+
+
+
+
+
