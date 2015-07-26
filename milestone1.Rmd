@@ -300,7 +300,7 @@ Further on, I will focus on these points :
 
 - improve the **sampling process**: sampling enough to **increase representativeness** 
 
-- **estimate unobserved n-grams** with [backoff models](https://en.wikipedia.org/wiki/Katz%27s_back-off_model)   
+- **estimate unobserved n-grams** with smoothing
 
 - use the knowledge of word frequencies to **reduce the size of the model**   
 
