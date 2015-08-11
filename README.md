@@ -8,4 +8,4 @@ Prior to processing the analysis and building the app, the data used -which is f
 here : http://www.corpora.heliohost.org/download.html. More information about the data is available here :  http://www.corpora.heliohost.org/aboutcorpus.html.
 
 'script1', 'script2', 'script3' and 'script4' have to be executed in this order respectively. 
-The estimation of unobserved n-grams has been performed using a backoff approach.
+The estimation of unobserved n-grams has been performed using a backoff approach. Perplexity has been used as metrics for assessing model's accuracy.
