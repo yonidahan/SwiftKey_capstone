@@ -6,3 +6,6 @@ The Capstone consists of building a language model which allows to predict the n
 
 Prior to processing the analysis and building the app, the data used -which is from a corpora called HC Corpora- has to be downloaded 
 here : http://www.corpora.heliohost.org/download.html. More information about the data is available here :  http://www.corpora.heliohost.org/aboutcorpus.html.
+
+'script1', 'script2', 'script3' and 'script4' have to be executed in this order respectively. 
+The estimation of unobserved n-grams has been performed using a backoff approach.
