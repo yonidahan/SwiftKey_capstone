@@ -58,7 +58,8 @@ data.frame(
         "File"=c("blogs","news","twitter"),
         "Memory"=sapply(files,FUN=function(x)format(object.size(x),units="MB")),
         "LineCount"=sapply(files,FUN=function(x)length(x)),
-        "WordCount"=c(37334131,34372530,30373583),
+        "WordCount"=c(system("wc -w en_US.blogs.txt"),system("wc -w en_US.news.txt"),
+                        system("wc -w en_US.twitter.txt")),
         "MeanLine"=sapply(files,FUN=function(x)mean(sapply(x,nchar))),
         "MaxLine"=sapply(files,FUN=function(x)max(sapply(x,nchar)))
 )
@@ -299,7 +300,7 @@ Further on, I will focus on these points :
 
 - improve the **sampling process**: sampling enough to **increase representativeness** 
 
-- **estimate unobserved n-grams** with [backoff models](https://en.wikipedia.org/wiki/Katz%27s_back-off_model)   
+- **estimate unobserved n-grams** with smoothing
 
 - use the knowledge of word frequencies to **reduce the size of the model**   
 
