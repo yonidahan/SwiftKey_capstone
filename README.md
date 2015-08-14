@@ -1,14 +1,15 @@
 # SwiftKey_capstone
 Data Science Specialization Capstone
 
-This repository contains all the scripts for the Coursera Data Science Capstone Project.   
-The Capstone consists of building a language model which allows to predict the next word based on an input string.
 
-Prior to processing the analysis and building the app, the data used -which is from a corpora called HC Corpora- has to be downloaded 
-here : http://www.corpora.heliohost.org/download.html and extracted in the working directory. 
-More information about the data is available here :  http://www.corpora.heliohost.org/aboutcorpus.html.
+The data used for the project is from the HC Corpora.
+Download HC Corpora : http://www.corpora.heliohost.org/download.html and extracted in the working directory
+More information about the corpora :  http://www.corpora.heliohost.org/aboutcorpus.html.
 
-'script1', 'script2', 'script3' and 'script4' have to be executed in this order respectively. 
-The estimation of unobserved n-grams has been performed using a backoff approach. Perplexity has been used as metrics for assessing model's accuracy.
+The initial scripts 'script1', 'script2', 'script3' have to be executed in this specific order. 
+'script1' is interested in loading, sampling he files and cleaning them using regular expression.
+'script2' generates the n-grams which will be later used for th model.
+'script3' saves the environment with the data needed for the model and app.
 
-Shiny app -- Word Guesser -- https://dahssarah.shinyapps.io/app1
+
+
