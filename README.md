@@ -15,7 +15,7 @@ The initial scripts 'script1', 'script2', 'script3' have to be executed in this 
 'script2' generates the n-grams which will be later used for the model.   
 'script3' saves the environment with the data needed for the model and app.
 
-Then, 'ui.R' and 'server.R' perform the creation of the app. The app is optimized for mobiles and can be loaded in any browser.
+Then, 'ui.R' and 'server.R' and 'app_script' perform the creation of the app. The app is optimized for mobiles and can be loaded in any browser.
 It is available here : https://dahssarah.shinyapps.io/app1
 
 
