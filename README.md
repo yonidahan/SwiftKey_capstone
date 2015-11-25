@@ -1,6 +1,6 @@
 The aim of this project is to buy an app which accepts an input string and predicts the next word., as proposed by SwiftKey.
 
-The present repository contain :
+The present repository contains :
    - the initial scripts needed to get, clean and shape the data 
    - the code for building the app
    - a presentation of the app
