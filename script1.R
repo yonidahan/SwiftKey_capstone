@@ -8,7 +8,6 @@ options(java.parameters = "-Xmx8000m") #Increase Java heap size
 Sys.setenv(JAVA_HOME="C:\\Program Files\\Java\\jre6")
 lapply(c("RWeka","NLP","openNLP"),require,character.only=TRUE)
 
-
 #Working directory
 wd<-"C:/Users/Sarah/Desktop/Data Science/Data Science Specialization/Capstone Project"
 setwd(wd)
